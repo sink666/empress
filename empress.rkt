@@ -13,12 +13,20 @@
        (string-replace line "." ",")]
       [else line])))
 
+(define (addatmosphere line)
+  (let ((needsatmos? (random 2)))
+    (cond
+      [(equal? needsatmos? 1)
+       (string-replace line "." "...")]
+      [else line])))
+
 (define (next-line-in-file file)
   (let ((line (read-line file 'any)))
     (unless (eof-object? line)
       (display (boomerspaces
                 (comma-splice
-                 (string-append line "\n"))))
+                 (addatmosphere
+                 (string-append line "\n")))))
       (next-line-in-file file))))
 
 (define (empress fname)
