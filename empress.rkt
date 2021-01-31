@@ -1,58 +1,52 @@
-#! /usr/bin/env racket
+#!/bin/racket
 #lang racket
 
-;;improve spacing
-(define (alter-spacing line)
-  (let ((booming? (random 2)))
+(define (boomer-spacing line)
+  (let ([booming? (random 2)])
     (cond
-      ((equal? booming? 1)
-       (string-replace line " " "  "))
-      (else (string-replace line "." ". ")))))
+      [(eq? booming? 1)
+       (string-replace line " " "  ")]
+      [else
+       (string-replace line "." ". ")])))
 
-;;check for line breaks and places for splices
-(define check-line
-  (lambda (line)
-    (condz
-      ((and (not (string-contains? line ".\n"))
-           (string-contains? line "."))))))
+(define (check-line line)
+  (and (not (string-contains? line ".\n"))
+        (string-contains? line ".")))
 
-;;introduce comma splices and more atmospheric comma splices
-(define improve-grammar
-  (lambda (line)
-    (let ((splice? (random 2)) (atmos-splice? (random 2)))
-      (cond
-        ((and (check-line line)
-              (equal? atmos-splice? 1))
-         (string-replace line "." "..."))
-        ((and (check-line line)
-              (eof-object? line)
-              (equal? splice? 1))
-         (string-replace line "." ","))
-        (else line)))))
-
-(define process-line
-  (lambda (line)
-    (improve-grammar (alter-spacing (string-append line "\n")))))
-
-(define enhance-file
-  (lambda (fn)
-    (let ((line (read-line fn 'any)))
-      (unless (eof-object? line)
-        (display (process-line line))
-        (enhance-file fn)))))
-
-;;add filename suggestions to the last else?
-(define empress
-  (lambda (cla)
+(define (improve-grammar line)
+  (let ([splice? (random 2)] [atmos-splice? (random 2)])
     (cond
-      ((vector-empty? cla) (printf "err; no filename given"))
-      (else
-       (let ((fn (vector-ref cla 0)))
-         (cond
-           ((file-exists? fn) (call-with-input-file fn enhance-file))
-           (else (printf "err; no file with name ~a" fn))))))))
+      [(and (eq? atmos-splice? 1)
+            (check-line line))
+       (string-replace line "." "...")]
+      [(and (eq? splice? 1)
+            (check-line line)
+            (eof-object? line))
+       (string-replace line "." ",")]
+      [else line])))
 
-(printf "enhancing file!\n\n")
-(empress (current-command-line-arguments))
+(define func-list
+  (list boomer-spacing
+        improve-grammar))
 
-;;eof
+(define (enhance-file file)
+  (let ([line (read-line file 'any)])
+    (unless (eof-object? line)
+      (display
+       ((foldl compose1 values func-list) (string-append line "\n")))
+      (enhance-file file))))
+
+(define (empress-begin [args (current-command-line-arguments)])
+  (cond
+    [(vector-empty? args)
+     (error 'empress-begin "no file(s) given, arg list: ~a" args)]
+    [else
+     (for ([file args])
+       (cond
+         [(file-exists? file)
+          (printf "File recieved for enhancement: ~a\n" file)
+          (call-with-input-file file enhance-file)]
+         [else
+          (error 'empress-begin "no file named: ~a" file)]))]))
+
+(empress-begin)
